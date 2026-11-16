@@ -1,39 +1,13 @@
-#include <thread>
-#include <chrono>
-#include <iostream>
-#include <system_error>
+#include <QApplication>
 
-#include "monitoring/CpuTimes.h"
-#include "monitoring/CpuUsage.h"
-#include "monitoring/windows/CpuTimesReader.h"
+#include "ui/MainWindow.h"
 
-void runMonitoring() {
-    auto previous = readCpuTimes();
+int main(int argc, char* argv[]) {
+    QApplication app(argc, argv);
+    MainWindow window;
 
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+    window.resize(640, 480);
+    window.show();
 
-        try {
-            const auto current = readCpuTimes();
-
-            if (auto usage = calculateCpuUsage(previous, current)) {
-                std::cout << "CPU usage: " << *usage << " %\n";
-            }
-
-            previous = current;
-        } catch (const std::system_error& e) {
-            std::cerr << "CPU sampling failed: " << e.what() << std::endl;
-        }
-    }
-}
-
-int main() {
-    try {
-        runMonitoring();
-    } catch (const std::system_error& e) {
-        std::cerr << "Monitoring failed to start: " << e.what() << std::endl;
-        return 1;
-    }
-
-    return 0;
+    return app.exec();
 }

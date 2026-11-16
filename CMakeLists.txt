@@ -3,11 +3,20 @@ project(ResourceMonitor)
 
 set(CMAKE_CXX_STANDARD 20)
 
+find_package(Qt6 REQUIRED COMPONENTS Widgets Core)
+
+qt_standard_project_setup()
+
 add_executable(ResourceMonitor src/main.cpp
         src/monitoring/CpuTimes.h
         src/monitoring/CpuUsage.h
         src/monitoring/CpuUsage.cpp
         src/monitoring/windows/CpuTimesReader.h
         src/monitoring/windows/CpuTimesReader.cpp
-        tests/CpuUsageTests.cpp
+        src/ui/MainWindow.cpp
+        src/ui/MainWindow.h
+)
+
+target_link_libraries(ResourceMonitor PRIVATE
+        Qt6::Widgets Qt6::Core
 )
