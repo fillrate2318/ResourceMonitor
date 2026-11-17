@@ -10,6 +10,7 @@
 
 #include "../monitoring/windows/CpuTimesReader.h"
 #include "../monitoring/windows/MemoryInfoReader.h"
+#include "../monitoring/MemoryUsage.h"
 #include "../monitoring/CpuUsage.h"
 
 namespace {
@@ -75,19 +76,18 @@ void MainWindow::updateCpuUsage(QStringList& errors) {
 void MainWindow::updateMemoryUsage(QStringList& errors) {
     try {
         const auto memoryInfo = readMemoryInfo();
+        const auto memoryUsage = calculateMemoryUsage(memoryInfo);
 
-        if (memoryInfo.totalBytes == 0 || memoryInfo.availableBytes > memoryInfo.totalBytes) {
+        if (!memoryUsage) {
             memoryLabel_->setText("Memory usage: N/A");
             errors.append(QString("Memory sampling returned invalid data"));
             return;
         }
-        const std::uint64_t usedBytes = memoryInfo.totalBytes - memoryInfo.availableBytes;
-        const double usagePercent = 100.0 * usedBytes / memoryInfo.totalBytes;
 
         memoryLabel_->setText(QString("RAM: %1 / %2 GiB (%3%)\nAvailable: %4 GiB")
-            .arg(usedBytes / bytesPerGiB, 0, 'f', 1)
+            .arg(memoryUsage->usedBytes / bytesPerGiB, 0, 'f', 1)
             .arg(memoryInfo.totalBytes / bytesPerGiB, 0, 'f', 1)
-            .arg(usagePercent, 0, 'f', 1)
+            .arg(memoryUsage->usagePercent, 0, 'f', 1)
             .arg(memoryInfo.availableBytes / bytesPerGiB, 0, 'f', 1));
     } catch (const std::system_error& e) {
         memoryLabel_->setText("Memory usage: N/A");

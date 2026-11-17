@@ -18,8 +18,23 @@ add_executable(ResourceMonitor src/main.cpp
         src/monitoring/MemoryInfo.h
         src/monitoring/windows/MemoryInfoReader.h
         src/monitoring/windows/MemoryInfoReader.cpp
+        src/monitoring/MemoryUsage.h
+        src/monitoring/MemoryUsage.cpp
 )
 
 target_link_libraries(ResourceMonitor PRIVATE
         Qt6::Widgets Qt6::Core
 )
+
+enable_testing()
+
+add_executable(MonitoringTests tests/MonitoringTests.cpp
+        src/monitoring/CpuUsage.cpp
+        src/monitoring/MemoryUsage.cpp
+)
+
+target_include_directories(MonitoringTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+add_test(NAME MonitoringTests COMMAND MonitoringTests)
