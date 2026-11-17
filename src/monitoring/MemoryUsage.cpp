@@ -7,7 +7,7 @@ std::optional<MemoryUsage> calculateMemoryUsage(const MemoryInfo& memoryInfo) {
 
     MemoryUsage memoryUsage;
     memoryUsage.usedBytes = memoryInfo.totalBytes - memoryInfo.availableBytes;
-    memoryUsage.usagePercent = 100.0 * memoryUsage.usedBytes / memoryInfo.totalBytes;;
+    memoryUsage.usagePercent = 100.0 * memoryUsage.usedBytes / memoryInfo.totalBytes;
 
     return memoryUsage;
 }
