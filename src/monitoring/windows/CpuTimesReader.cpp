@@ -6,7 +6,8 @@
 
 namespace {
     std::uint64_t fileTimeToUint64(const FILETIME& fileTime) {
-        return (static_cast<std::uint64_t>(fileTime.dwHighDateTime) << 32) | static_cast<std::uint64_t>(fileTime.dwLowDateTime);
+        return (static_cast<std::uint64_t>(fileTime.dwHighDateTime) << 32) |
+            static_cast<std::uint64_t>(fileTime.dwLowDateTime);
     }
 }
 
@@ -16,7 +17,8 @@ CpuTimes readCpuTimes() {
     FILETIME idleTime, kernelTime, userTime;
 
     if (!GetSystemTimes(&idleTime, &kernelTime, &userTime)) {
-        throw std::system_error(GetLastError(), std::system_category(), "Failed to get system times");
+        throw std::system_error(GetLastError(), std::system_category(),
+            "Failed to get system times");
     }
     cpuTimes.idle = fileTimeToUint64(idleTime);
     cpuTimes.kernel = fileTimeToUint64(kernelTime);

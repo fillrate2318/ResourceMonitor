@@ -15,6 +15,9 @@ add_executable(ResourceMonitor src/main.cpp
         src/monitoring/windows/CpuTimesReader.cpp
         src/ui/MainWindow.cpp
         src/ui/MainWindow.h
+        src/monitoring/MemoryInfo.h
+        src/monitoring/windows/MemoryInfoReader.h
+        src/monitoring/windows/MemoryInfoReader.cpp
 )
 
 target_link_libraries(ResourceMonitor PRIVATE
