@@ -15,7 +15,8 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
 
 private:
-    void updateMetrics();
+    void updateStaticMetrics();
+    void updateDynamicMetrics();
 
     void updateCpuUsage(QStringList& errors);
     void updateMemoryUsage(QStringList& errors);
@@ -23,7 +24,10 @@ private:
     std::optional<CpuTimes> previousCpuTimes_ = std::nullopt;
 
     QLabel* cpuLabel_ = nullptr;
+    QLabel* cpuTopologyLabel_ = nullptr;
     QLabel* memoryLabel_ = nullptr;
 
     QTimer* timer_ = nullptr;
+
+    QString topologyError_;
 };

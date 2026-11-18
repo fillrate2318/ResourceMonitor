@@ -20,6 +20,9 @@ add_executable(ResourceMonitor src/main.cpp
         src/monitoring/windows/MemoryInfoReader.cpp
         src/monitoring/MemoryUsage.h
         src/monitoring/MemoryUsage.cpp
+        src/monitoring/CpuTopology.h
+        src/monitoring/windows/CpuTopologyReader.h
+        src/monitoring/windows/CpuTopologyReader.cpp
 )
 
 target_link_libraries(ResourceMonitor PRIVATE

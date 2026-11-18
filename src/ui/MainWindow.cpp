@@ -10,6 +10,7 @@
 
 #include "../monitoring/windows/CpuTimesReader.h"
 #include "../monitoring/windows/MemoryInfoReader.h"
+#include "../monitoring/windows/CpuTopologyReader.h"
 #include "../monitoring/MemoryUsage.h"
 #include "../monitoring/CpuUsage.h"
 
@@ -24,6 +25,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     cpuLabel_ = new QLabel(centralWidget);
     layout->addWidget(cpuLabel_);
 
+    cpuTopologyLabel_ = new QLabel(centralWidget);
+    layout->addWidget(cpuTopologyLabel_);
+
     memoryLabel_ = new QLabel(centralWidget);
     layout->addWidget(memoryLabel_);
 
@@ -32,14 +36,32 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setCentralWidget(centralWidget);
 
     timer_ = new QTimer(this);
-    connect(timer_, &QTimer::timeout, this, &MainWindow::updateMetrics);
+    connect(timer_, &QTimer::timeout, this, &MainWindow::updateDynamicMetrics);
     timer_->start(1000);
 
-    updateMetrics();
+    updateStaticMetrics();
+    updateDynamicMetrics();
 }
 
-void MainWindow::updateMetrics() {
+void MainWindow::updateStaticMetrics() {
+    try {
+        const auto cpuTopology = readCpuTopology();
+        topologyError_.clear();
+        cpuTopologyLabel_->setText(QString("Physical core count: %1\nLogical processor count: %2")
+            .arg(cpuTopology.physicalCoreCount).arg(cpuTopology.logicalProcessorCount));
+    } catch (const std::runtime_error& e) {
+        cpuTopologyLabel_->setText("CPU topology: N/A");
+        topologyError_ = QString("CPU topology failed: %1")
+            .arg(QString::fromLocal8Bit(e.what()));
+    }
+}
+
+void MainWindow::updateDynamicMetrics() {
     QStringList errors;
+
+    if (!topologyError_.isEmpty()) {
+        errors.append(topologyError_);
+    }
 
     updateCpuUsage(errors);
     updateMemoryUsage(errors);
