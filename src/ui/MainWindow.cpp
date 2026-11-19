@@ -7,12 +7,14 @@
 #include <QStatusBar>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QTableWidget>
+#include <QAbstractItemView>
 
+#include "../monitoring/CpuUsage.h"
+#include "../monitoring/MemoryUsage.h"
 #include "../monitoring/windows/CpuTimesReader.h"
 #include "../monitoring/windows/MemoryInfoReader.h"
 #include "../monitoring/windows/CpuTopologyReader.h"
-#include "../monitoring/MemoryUsage.h"
-#include "../monitoring/CpuUsage.h"
 
 namespace {
     constexpr double bytesPerGiB = 1073741824.0;
@@ -31,9 +33,23 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     memoryLabel_ = new QLabel(centralWidget);
     layout->addWidget(memoryLabel_);
 
-    layout->addStretch();
+    logicalCpuTable_ = new QTableWidget(1, 2, centralWidget);
+    logicalCpuTable_->setHorizontalHeaderLabels({"Logical processor", "Usage"});
+    logicalCpuTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    logicalCpuTable_->setItem(0, 0, new QTableWidgetItem("Collecting data…"));
+
+    layout->addWidget(logicalCpuTable_, 1);
 
     setCentralWidget(centralWidget);
+
+    try {
+        cpuUsageReader_ = std::make_unique<LogicalCpuUsageReader>();
+        logicalCpuInitError_.clear();
+    }
+    catch (const std::system_error& e) {
+        setUndefinedLogicalCpuUsage();
+        logicalCpuInitError_ = formatLogicalCpuError(e);
+    }
 
     timer_ = new QTimer(this);
     connect(timer_, &QTimer::timeout, this, &MainWindow::updateDynamicMetrics);
@@ -63,8 +79,13 @@ void MainWindow::updateDynamicMetrics() {
         errors.append(topologyError_);
     }
 
+    if (!logicalCpuInitError_.isEmpty()) {
+        errors.append(logicalCpuInitError_);
+    }
+
     updateCpuUsage(errors);
     updateMemoryUsage(errors);
+    updateLogicalCpuUsage(errors);
 
     if (errors.isEmpty()) {
         statusBar()->clearMessage();
@@ -117,4 +138,49 @@ void MainWindow::updateMemoryUsage(QStringList& errors) {
             QString::fromLocal8Bit(e.what())));
     }
 
+}
+
+void MainWindow::updateLogicalCpuUsage(QStringList &errors) {
+    if (!cpuUsageReader_) {
+        return;
+    }
+
+    try {
+        const auto sample = cpuUsageReader_->sample();
+        if (!sample) {
+            return;
+        }
+
+        logicalCpuTable_->setRowCount(sample->size());
+
+        int row = 0;
+        for (const auto& cpu : *sample) {
+            const auto name = QString::fromStdWString(cpu.processorId);
+            const auto usage = cpu.usagePercent
+                ? QString("%1%").arg(*cpu.usagePercent, 0, 'f', 1)
+                : QString("N/A");
+
+            logicalCpuTable_->setItem(row, 0, new QTableWidgetItem(name));
+            logicalCpuTable_->setItem(row, 1, new QTableWidgetItem(usage));
+            ++row;
+        }
+    }
+    catch (const std::system_error& e) {
+        setUndefinedLogicalCpuUsage();
+        errors.append(formatLogicalCpuError(e));
+    }
+}
+
+QString MainWindow::formatLogicalCpuError(const std::runtime_error &e) const {
+    const auto code = QString::number(static_cast<quint32>(e.code().value()), 16).toUpper();
+    const auto message = QString("Logical CPU: %1 (PDH 0x%2)")
+        .arg(QString::fromLocal8Bit(e.what()))
+        .arg(code);
+    return message;
+}
+
+void MainWindow::setUndefinedLogicalCpuUsage() {
+    logicalCpuTable_->clearContents();
+    logicalCpuTable_->setRowCount(1);
+    logicalCpuTable_->setItem(0, 0, new QTableWidgetItem("Logical CPU usage: N/A"));
 }
