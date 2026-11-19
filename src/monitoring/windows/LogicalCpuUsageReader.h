@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
+#include <memory>
 #include <optional>
 #include <vector>
-#include <pdh.h>
 
 struct LogicalCpuUsage {
-    std::wstring processorId;
+    int group = 0;
+    int number = 0;
     std::optional<double> usagePercent;
 };
 
@@ -19,13 +19,11 @@ public:
 
     LogicalCpuUsageReader& operator=(const LogicalCpuUsageReader&) = delete;
 
-    std::optional<std::vector<LogicalCpuUsage>> sample();
+    std::optional<std::vector<LogicalCpuUsage>> sample(std::optional<double>& total);
 
 private:
     void openQuery();
 
-    PDH_HQUERY query_ = nullptr;
-    PDH_HCOUNTER counter_ = nullptr;
-
-    bool hasPreviousSample_ = false;
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
 };

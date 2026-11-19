@@ -1,10 +1,10 @@
 #pragma once
 
-#include <optional>
+#include <memory>
+#include <system_error>
 
 #include <QMainWindow>
 
-#include "../monitoring/CpuTimes.h"
 #include "../monitoring/windows/LogicalCpuUsageReader.h"
 
 class QLabel;
@@ -19,14 +19,11 @@ private:
     void updateStaticMetrics();
     void updateDynamicMetrics();
 
-    void updateCpuUsage(QStringList& errors);
     void updateMemoryUsage(QStringList& errors);
     void updateLogicalCpuUsage(QStringList& errors);
 
-    QString formatLogicalCpuError(const std::runtime_error& e) const;
+    QString formatLogicalCpuError(const std::system_error& e) const;
     void setUndefinedLogicalCpuUsage();
-
-    std::optional<CpuTimes> previousCpuTimes_ = std::nullopt;
 
     std::unique_ptr<LogicalCpuUsageReader> cpuUsageReader_;
 
