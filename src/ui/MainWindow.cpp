@@ -13,6 +13,7 @@
 #include "../monitoring/MemoryUsage.h"
 #include "../monitoring/windows/MemoryInfoReader.h"
 #include "../monitoring/windows/CpuTopologyReader.h"
+#include "../monitoring/windows/CpuFrequencyReader.h"
 
 namespace {
     constexpr double bytesPerGiB = 1073741824.0;
@@ -28,6 +29,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     cpuTopologyLabel_ = new QLabel(centralWidget);
     layout->addWidget(cpuTopologyLabel_);
+
+    cpuFrequencyLabel_ = new QLabel(centralWidget);
+    layout->addWidget(cpuFrequencyLabel_);
 
     memoryLabel_ = new QLabel(centralWidget);
     layout->addWidget(memoryLabel_);
@@ -45,8 +49,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
         cpuUsageReader_ = std::make_unique<LogicalCpuUsageReader>();
         logicalCpuInitError_.clear();
     } catch (const std::system_error& e) {
-        setUndefinedLogicalCpuUsage();
-        logicalCpuInitError_ = formatLogicalCpuError(e);
+        setCpuNotAvailable();
+        logicalCpuInitError_ = formatError("Logical CPU: %1 (PDH 0x%2)", e);
     }
 
     timer_ = new QTimer(this);
@@ -83,6 +87,7 @@ void MainWindow::updateDynamicMetrics() {
 
     updateMemoryUsage(errors);
     updateLogicalCpuUsage(errors);
+    updateCpuFrequency(errors);
 
     if (errors.isEmpty()) {
         statusBar()->clearMessage();
@@ -148,20 +153,42 @@ void MainWindow::updateLogicalCpuUsage(QStringList& errors) {
             ++row;
         }
     } catch (const std::system_error& e) {
-        setUndefinedLogicalCpuUsage();
-        errors.append(formatLogicalCpuError(e));
+        setCpuNotAvailable();
+        errors.append(formatError("Logical CPU: %1 (PDH 0x%2)", e));
     }
 }
 
-QString MainWindow::formatLogicalCpuError(const std::system_error& e) const {
+void MainWindow::updateCpuFrequency(QStringList &errors) {
+    try {
+        const auto freqs = readCpuFrequencies();
+        if (freqs.empty()) {
+            cpuFrequencyLabel_->setText(QString("CPU Frequency: N/A"));
+            return;
+        }
+        const auto range = std::ranges::minmax_element(freqs.begin(), freqs.end());
+        if (*range.min != *range.max) {
+            cpuFrequencyLabel_->setText(QString("CPU Frequency: %1 GHz - %2 GHz")
+                .arg(*range.min / 1000.0, 0, 'f', 2)
+                .arg(*range.max / 1000.0, 0, 'f', 2));
+        } else {
+            cpuFrequencyLabel_->setText(QString("CPU Frequency: %1 GHz")
+                .arg(*range.min / 1000.0, 0, 'f', 2));
+        }
+    } catch (const std::system_error& e) {
+        cpuFrequencyLabel_->setText("CPU Frequency: N/A");
+        errors.append(formatError("CPU Frequency: %1 (NTSTATUS 0x%2)", e));
+    }
+}
+//"Logical CPU: %1 (PDH 0x%2)"
+QString MainWindow::formatError(const char* format, const std::system_error& e) const {
     const auto code = QString::number(static_cast<quint32>(e.code().value()), 16).toUpper();
-    const auto message = QString("Logical CPU: %1 (PDH 0x%2)")
+    const auto message = QString(format)
         .arg(QString::fromLocal8Bit(e.what()))
         .arg(code);
     return message;
 }
 
-void MainWindow::setUndefinedLogicalCpuUsage() {
+void MainWindow::setCpuNotAvailable() {
     logicalCpuTable_->clearContents();
     logicalCpuTable_->setRowCount(1);
     logicalCpuTable_->setItem(0, 0, new QTableWidgetItem("Logical CPU usage: N/A"));

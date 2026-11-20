@@ -25,11 +25,14 @@ add_executable(ResourceMonitor src/main.cpp
         src/monitoring/windows/CpuTopologyReader.cpp
         src/monitoring/windows/LogicalCpuUsageReader.cpp
         src/monitoring/windows/LogicalCpuUsageReader.h
+        src/monitoring/windows/CpuFrequencyReader.h
+        src/monitoring/windows/CpuFrequencyReader.cpp
 )
 
 target_link_libraries(ResourceMonitor PRIVATE
         Qt6::Widgets Qt6::Core
         pdh
+        PowrProf
 )
 
 enable_testing()

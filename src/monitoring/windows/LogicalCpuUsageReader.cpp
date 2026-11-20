@@ -79,7 +79,7 @@ std::optional<std::vector<LogicalCpuUsage>> LogicalCpuUsageReader::sample(std::o
         }
 
         int group, number;
-        if (swscanf_s(std::wstring(item.szName).c_str(), L"%d , %d", &group, &number) == 2) {
+        if (swscanf_s(item.szName, L"%d , %d", &group, &number) == 2) {
             result.push_back({group, number, value});
         }
 

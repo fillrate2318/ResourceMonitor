@@ -21,14 +21,16 @@ private:
 
     void updateMemoryUsage(QStringList& errors);
     void updateLogicalCpuUsage(QStringList& errors);
+    void updateCpuFrequency(QStringList& errors);
 
-    QString formatLogicalCpuError(const std::system_error& e) const;
-    void setUndefinedLogicalCpuUsage();
+    QString formatError(const char* format, const std::system_error& e) const;
+    void setCpuNotAvailable();
 
     std::unique_ptr<LogicalCpuUsageReader> cpuUsageReader_;
 
     QLabel* cpuLabel_ = nullptr;
     QLabel* cpuTopologyLabel_ = nullptr;
+    QLabel* cpuFrequencyLabel_ = nullptr;
     QLabel* memoryLabel_ = nullptr;
 
     QTableWidget* logicalCpuTable_ = nullptr;
