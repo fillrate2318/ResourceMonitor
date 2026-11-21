@@ -6,9 +6,11 @@
 #include <QMainWindow>
 
 #include "../monitoring/windows/LogicalCpuUsageReader.h"
+#include "../monitoring/windows/ProcessListReader.h"
 
 class QLabel;
 class QTableWidget;
+class ProcessTableModel;
 class QTimer;
 
 class MainWindow : public QMainWindow {
@@ -22,6 +24,7 @@ private:
     void updateMemoryUsage(QStringList& errors);
     void updateLogicalCpuUsage(QStringList& errors);
     void updateCpuFrequency(QStringList& errors);
+    void updateProcessList(QStringList& errors);
 
     QString formatError(const char* format, const std::system_error& e) const;
     void setCpuNotAvailable();
@@ -32,6 +35,8 @@ private:
     QLabel* cpuTopologyLabel_ = nullptr;
     QLabel* cpuFrequencyLabel_ = nullptr;
     QLabel* memoryLabel_ = nullptr;
+
+    ProcessTableModel* processModel_ = nullptr;
 
     QTableWidget* logicalCpuTable_ = nullptr;
 

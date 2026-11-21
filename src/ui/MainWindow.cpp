@@ -9,11 +9,14 @@
 #include <QWidget>
 #include <QTableWidget>
 #include <QAbstractItemView>
+#include <QTabWidget>
+#include <QTableView>
 
 #include "../monitoring/MemoryUsage.h"
 #include "../monitoring/windows/MemoryInfoReader.h"
 #include "../monitoring/windows/CpuTopologyReader.h"
 #include "../monitoring/windows/CpuFrequencyReader.h"
+#include "../ui/ProcessTableModel.h"
 
 namespace {
     constexpr double bytesPerGiB = 1073741824.0;
@@ -40,10 +43,18 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     logicalCpuTable_->setHorizontalHeaderLabels({"Logical processor", "Usage"});
     logicalCpuTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     logicalCpuTable_->setItem(0, 0, new QTableWidgetItem("Collecting data…"));
-
     layout->addWidget(logicalCpuTable_, 1);
 
-    setCentralWidget(centralWidget);
+    auto* tabs = new QTabWidget(this);
+    tabs->addTab(centralWidget, "Overview");
+
+    auto* processView = new QTableView(this);
+    tabs->addTab(processView, "Processes");
+
+    processModel_ = new ProcessTableModel(processView);
+    processView->setModel(processModel_);
+
+    setCentralWidget(tabs);
 
     try {
         cpuUsageReader_ = std::make_unique<LogicalCpuUsageReader>();
@@ -88,6 +99,7 @@ void MainWindow::updateDynamicMetrics() {
     updateMemoryUsage(errors);
     updateLogicalCpuUsage(errors);
     updateCpuFrequency(errors);
+    updateProcessList(errors);
 
     if (errors.isEmpty()) {
         statusBar()->clearMessage();
@@ -179,6 +191,15 @@ void MainWindow::updateCpuFrequency(QStringList &errors) {
         errors.append(formatError("CPU Frequency: %1 (NTSTATUS 0x%2)", e));
     }
 }
+
+void MainWindow::updateProcessList(QStringList &errors) {
+    try {
+        processModel_->setProcesses(readProcesses());
+    } catch (const std::system_error& e) {
+        errors.append(formatError("Processes: %1 (Win32 0x%2)", e));
+    }
+}
+
 //"Logical CPU: %1 (PDH 0x%2)"
 QString MainWindow::formatError(const char* format, const std::system_error& e) const {
     const auto code = QString::number(static_cast<quint32>(e.code().value()), 16).toUpper();

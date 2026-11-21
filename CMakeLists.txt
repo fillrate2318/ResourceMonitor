@@ -27,6 +27,10 @@ add_executable(ResourceMonitor src/main.cpp
         src/monitoring/windows/LogicalCpuUsageReader.h
         src/monitoring/windows/CpuFrequencyReader.h
         src/monitoring/windows/CpuFrequencyReader.cpp
+        src/monitoring/windows/ProcessListReader.h
+        src/monitoring/windows/ProcessListReader.cpp
+        src/ui/ProcessTableModel.cpp
+        src/ui/ProcessTableModel.h
 )
 
 target_link_libraries(ResourceMonitor PRIVATE
@@ -40,6 +44,7 @@ enable_testing()
 add_executable(MonitoringTests tests/MonitoringTests.cpp
         src/monitoring/CpuUsage.cpp
         src/monitoring/MemoryUsage.cpp
+        src/monitoring/ProcessInfo.h
 )
 
 target_include_directories(MonitoringTests PRIVATE
