@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 4.2)
 project(ResourceMonitor)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets Core)
 
@@ -52,3 +53,16 @@ target_include_directories(MonitoringTests PRIVATE
 )
 
 add_test(NAME MonitoringTests COMMAND MonitoringTests)
+
+add_executable(ProcessTableModelTests
+        tests/ProcessTableModelTests.cpp
+        src/ui/ProcessTableModel.cpp
+)
+
+target_include_directories(ProcessTableModelTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(ProcessTableModelTests PRIVATE Qt6::Core)
+
+add_test(NAME ProcessTableModelTests COMMAND ProcessTableModelTests)
+set_tests_properties(ProcessTableModelTests PROPERTIES
+        ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>"
+)

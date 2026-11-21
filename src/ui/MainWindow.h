@@ -6,7 +6,6 @@
 #include <QMainWindow>
 
 #include "../monitoring/windows/LogicalCpuUsageReader.h"
-#include "../monitoring/windows/ProcessListReader.h"
 
 class QLabel;
 class QTableWidget;

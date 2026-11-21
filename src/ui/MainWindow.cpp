@@ -1,5 +1,7 @@
 #include "MainWindow.h"
+#include "ProcessTableModel.h"
 
+#include <algorithm>
 #include <system_error>
 
 #include <QLabel>
@@ -16,7 +18,7 @@
 #include "../monitoring/windows/MemoryInfoReader.h"
 #include "../monitoring/windows/CpuTopologyReader.h"
 #include "../monitoring/windows/CpuFrequencyReader.h"
-#include "../ui/ProcessTableModel.h"
+#include "../monitoring/windows/ProcessListReader.h"
 
 namespace {
     constexpr double bytesPerGiB = 1073741824.0;
@@ -129,7 +131,6 @@ void MainWindow::updateMemoryUsage(QStringList& errors) {
         errors.append(QString("Memory sampling failed: %1").arg(
             QString::fromLocal8Bit(e.what())));
     }
-
 }
 
 void MainWindow::updateLogicalCpuUsage(QStringList& errors) {
@@ -138,24 +139,29 @@ void MainWindow::updateLogicalCpuUsage(QStringList& errors) {
     }
 
     try {
-        std::optional<double> total = std::nullopt;
-
-        const auto sample = cpuUsageReader_->sample(total);
+        const auto sample = cpuUsageReader_->sample();
         if (!sample) {
             return;
         }
 
+        const auto total = sample->totalUsagePercent;
         if (!total) {
             cpuLabel_->setText("CPU usage: N/A");
         } else {
             cpuLabel_->setText(QString("CPU usage: %1%").arg(*total, 0, 'f', 1));
         }
 
-        logicalCpuTable_->setRowCount(static_cast<int>(sample->size()));
+        const auto& processors = sample->processors;
+        const bool showGroup = std::ranges::any_of(processors, [](const LogicalCpuUsage& cpu) {
+            return cpu.group != 0;
+        });
+        logicalCpuTable_->setRowCount(static_cast<int>(processors.size()));
 
         int row = 0;
-        for (const auto& cpu : *sample) {
-            const auto name = QString("CPU %1").arg(cpu.number);
+        for (const auto& cpu : processors) {
+            const auto name = showGroup
+                ? QString("Group %1 / CPU %2").arg(cpu.group).arg(cpu.number)
+                : QString("CPU %1").arg(cpu.number);
             const auto usage = cpu.usagePercent
                 ? QString("%1%").arg(*cpu.usagePercent, 0, 'f', 1)
                 : QString("N/A");
@@ -170,21 +176,21 @@ void MainWindow::updateLogicalCpuUsage(QStringList& errors) {
     }
 }
 
-void MainWindow::updateCpuFrequency(QStringList &errors) {
+void MainWindow::updateCpuFrequency(QStringList& errors) {
     try {
         const auto freqs = readCpuFrequencies();
         if (freqs.empty()) {
             cpuFrequencyLabel_->setText(QString("CPU Frequency: N/A"));
             return;
         }
-        const auto range = std::ranges::minmax_element(freqs.begin(), freqs.end());
-        if (*range.min != *range.max) {
+        const auto range = std::ranges::minmax(freqs);
+        if (range.min != range.max) {
             cpuFrequencyLabel_->setText(QString("CPU Frequency: %1 GHz - %2 GHz")
-                .arg(*range.min / 1000.0, 0, 'f', 2)
-                .arg(*range.max / 1000.0, 0, 'f', 2));
+                .arg(range.min / 1000.0, 0, 'f', 2)
+                .arg(range.max / 1000.0, 0, 'f', 2));
         } else {
             cpuFrequencyLabel_->setText(QString("CPU Frequency: %1 GHz")
-                .arg(*range.min / 1000.0, 0, 'f', 2));
+                .arg(range.min / 1000.0, 0, 'f', 2));
         }
     } catch (const std::system_error& e) {
         cpuFrequencyLabel_->setText("CPU Frequency: N/A");
@@ -192,7 +198,7 @@ void MainWindow::updateCpuFrequency(QStringList &errors) {
     }
 }
 
-void MainWindow::updateProcessList(QStringList &errors) {
+void MainWindow::updateProcessList(QStringList& errors) {
     try {
         processModel_->setProcesses(readProcesses());
     } catch (const std::system_error& e) {
@@ -200,7 +206,6 @@ void MainWindow::updateProcessList(QStringList &errors) {
     }
 }
 
-//"Logical CPU: %1 (PDH 0x%2)"
 QString MainWindow::formatError(const char* format, const std::system_error& e) const {
     const auto code = QString::number(static_cast<quint32>(e.code().value()), 16).toUpper();
     const auto message = QString(format)

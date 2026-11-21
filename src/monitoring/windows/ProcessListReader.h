@@ -5,5 +5,3 @@
 #include "../ProcessInfo.h"
 
 std::vector<ProcessInfo> readProcesses();
-
-

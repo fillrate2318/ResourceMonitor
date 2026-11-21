@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
-std::vector<int> readCpuFrequencies();
+std::vector<std::uint32_t> readCpuFrequencies();

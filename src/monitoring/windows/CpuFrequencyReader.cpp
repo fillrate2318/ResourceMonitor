@@ -2,43 +2,46 @@
 
 #include <windows.h>
 #include <powrprof.h>
-#include <iostream>
-#include <string>
 #include <system_error>
 
-typedef struct _PROCESSOR_POWER_INFORMATION {
-    ULONG Number;
-    ULONG MaxMhz;
-    ULONG CurrentMhz;
-    ULONG MhzLimit;
-    ULONG MaxIdleState;
-    ULONG CurrentIdleState;
-} PROCESSOR_POWER_INFORMATION, *PPROCESSOR_POWER_INFORMATION;
+namespace {
+    // ProcessorInformation uses this layout for each returned processor.
+    struct ProcessorPowerInformation {
+        ULONG number;
+        ULONG maxMhz;
+        ULONG currentMhz;
+        ULONG mhzLimit;
+        ULONG maxIdleState;
+        ULONG currentIdleState;
+    };
+}
 
-std::vector<int> readCpuFrequencies() {
-    SYSTEM_INFO systemInfo{};
-    GetSystemInfo(&systemInfo);
-
-    DWORD numberOfProcessors = systemInfo.dwNumberOfProcessors;
-    std::vector<PROCESSOR_POWER_INFORMATION> processors(numberOfProcessors);
+std::vector<std::uint32_t> readCpuFrequencies() {
+    const DWORD processorCount = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
+    if (processorCount == 0) {
+        return {};
+    }
+    std::vector<ProcessorPowerInformation> processors(processorCount);
 
     const NTSTATUS status = CallNtPowerInformation(
         ProcessorInformation,
         nullptr,
         0,
         processors.data(),
-        numberOfProcessors * sizeof(PROCESSOR_POWER_INFORMATION));
+        static_cast<ULONG>(processors.size() * sizeof(ProcessorPowerInformation)));
 
     if (status != ERROR_SUCCESS) {
         throw std::system_error(status, std::system_category(),
             "Power information call failed");
     }
 
-    std::vector<int> result;
-    result.reserve(numberOfProcessors);
+    std::vector<std::uint32_t> result;
+    result.reserve(processors.size());
 
     for (const auto& processor : processors) {
-        result.push_back(processor.CurrentMhz);
+        if (processor.currentMhz != 0) {
+            result.push_back(processor.currentMhz);
+        }
     }
 
     return result;

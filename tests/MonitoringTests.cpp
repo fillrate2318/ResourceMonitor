@@ -1,5 +1,6 @@
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <optional>
 
 #include "monitoring/CpuUsage.h"
@@ -48,6 +49,8 @@ namespace {
         {"Decreasing kernel", {100, 200, 300}, {125, 199, 320}, std::nullopt},
         {"Decreasing user", {100, 200, 300}, {125, 280, 299}, std::nullopt},
         {"Invalid idle delta", {100, 200, 300}, {400, 300, 400}, std::nullopt},
+        {"Idle delta exceeds kernel delta", {100, 200, 300}, {160, 250, 400}, std::nullopt},
+        {"Total delta overflows", {}, {0, std::numeric_limits<std::uint64_t>::max(), 2}, std::nullopt},
         {"Unchanged user", {100, 200, 300}, {125, 300, 300}, 75.0},
         {"Fractional load", {100, 200, 300}, {102, 202, 301}, 100.0 / 3.0},
     };

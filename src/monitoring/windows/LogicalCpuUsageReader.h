@@ -10,8 +10,12 @@ struct LogicalCpuUsage {
     std::optional<double> usagePercent;
 };
 
-class LogicalCpuUsageReader {
+struct LogicalCpuUsageSample {
+    std::optional<double> totalUsagePercent;
+    std::vector<LogicalCpuUsage> processors;
+};
 
+class LogicalCpuUsageReader {
 public:
     LogicalCpuUsageReader();
     LogicalCpuUsageReader(const LogicalCpuUsageReader&) = delete;
@@ -19,7 +23,7 @@ public:
 
     LogicalCpuUsageReader& operator=(const LogicalCpuUsageReader&) = delete;
 
-    std::optional<std::vector<LogicalCpuUsage>> sample(std::optional<double>& total);
+    std::optional<LogicalCpuUsageSample> sample();
 
 private:
     void openQuery();
